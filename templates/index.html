@@ -4,44 +4,161 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facturas en Trello</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         .card {
             margin-bottom: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .amazing-fields {
-            margin-top: 1rem;
+        
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
         }
-        .field-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
+        
+        .card-body {
+            padding: 1.5rem;
         }
-        .field-row:last-child {
-            border-bottom: none;
+        
+        .label {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
         }
+        
         .field-label {
-            font-weight: 500;
-            color: #6c757d;
-            min-width: 120px;
-        }
-        .field-value {
-            text-align: right;
-            color: #212529;
-        }
-        .badge {
+            font-weight: bold;
             margin-right: 0.5rem;
         }
-        .badge.factura {
-            background-color: #0d6efd;
+        
+        .field-row {
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
         }
-        .badge.conversion {
-            background-color: #198754;
+        
+        .description-container {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
-        .badge.taller {
-            background-color: #6610f2;
+        
+        .card-checklist {
+            margin-top: 1rem;
+        }
+        
+        .checklist-title {
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+        
+        .client-data-section {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .client-data-section table {
+            margin-bottom: 0;
+        }
+        
+        .client-data-section th {
+            background-color: #e9ecef;
+        }
+        
+        .section-title {
+            color: #495057;
+            font-weight: 600;
+        }
+        
+        .specific-checklists-container {
+            border-top: 1px solid #e9ecef;
+            padding-top: 1.5rem;
+        }
+        
+        .specific-checklists-container table {
+            border: 1px solid #dee2e6;
+        }
+        
+        .specific-checklists-container td {
+            vertical-align: middle;
+            padding: 0.75rem;
+        }
+        
+        .checklist-row:not(:last-child) {
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .checklist-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .checklist-header {
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .checklist-header:hover {
+            background-color: #e6e6e6;
+        }
+        
+        .checklist-body {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .accordion-button {
+            background-color: #f8f9fa;
+            font-weight: 500;
+        }
+        
+        .accordion-button:not(.collapsed) {
+            background-color: #e9ecef;
+            color: #212529;
+            box-shadow: none;
+        }
+        
+        .accordion-item {
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+        }
+        
+        .accordion-body {
+            padding: 1rem;
+            background-color: #fff;
+        }
+        
+        /* Two-column layout for wider screens */
+        @media (min-width: 992px) {
+            .card-content {
+                display: flex;
+                flex-wrap: wrap;
+            }
+            
+            .card-left-column {
+                flex: 1;
+                padding-right: 1rem;
+                min-width: 60%;
+            }
+            
+            .card-right-column {
+                flex: 0 0 35%;
+                border-left: 1px solid #e9ecef;
+                padding-left: 1rem;
+            }
         }
     </style>
 </head>
@@ -49,7 +166,16 @@
     <div class="container py-4">
         <h1 class="text-center mb-4">Facturas en Trello</h1>
         <div id="error-message" class="alert alert-danger d-none"></div>
-        <div id="board-container"></div>
+        <div class="container mt-3">
+            <h1>Trello Board Viewer</h1>
+            <div id="board-container" class="mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>Tarjetas en Lista "Factura"</h2>
+                    <button id="debugExportBtn" class="btn btn-warning">Debug Export</button>
+                </div>
+                <div id="cards-container" class="row"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -64,135 +190,857 @@
             'DNI'
         ];
 
-        function displayError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('d-none');
+        const importantFields = [
+            'Nombre',
+            'Fecha',
+            'Provincia',
+            'Población',
+            'C.Postal',
+            'Dirección',
+            'DNI'
+        ];
+
+        // Function to display error messages
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.classList.remove('d-none');
         }
 
-        function renderAmazingFields(amazingFields) {
-            if (!amazingFields) {
-                console.error('amazingFields is undefined');
+        function renderAmazingFields(customFields) {
+            console.log('Rendering amazing fields:', customFields);
+            
+            // If customFields is null or empty, return nothing
+            if (!customFields || Object.keys(customFields).length === 0) {
+                console.log('No custom fields found');
                 return document.createElement('div');
             }
             
-            console.log('Rendering fields:', amazingFields);  // Debug log
+            const fieldsContainer = document.createElement('div');
+            fieldsContainer.className = 'amazing-fields mt-3';
             
-            const fields = document.createElement('div');
-            fields.className = 'amazing-fields border rounded p-3 bg-white';
-
-            // Añadir título
-            const title = document.createElement('h6');
-            title.className = 'mb-3 text-secondary';
-            title.textContent = 'Datos de Factura';
-            fields.appendChild(title);
-
-            fieldOrder.forEach(fieldName => {
-                const value = amazingFields[fieldName];
-                console.log(`Field ${fieldName}:`, value);  // Debug log
-                
-                const fieldRow = document.createElement('div');
-                fieldRow.className = 'field-row';
-                
-                const label = document.createElement('span');
-                label.className = 'field-label';
-                label.textContent = fieldName;
-                
-                const valueSpan = document.createElement('span');
-                valueSpan.className = 'field-value' + (value ? '' : ' text-muted fst-italic');
-                valueSpan.textContent = value || '(sin datos)';
-                
-                fieldRow.appendChild(label);
-                fieldRow.appendChild(valueSpan);
-                fields.appendChild(fieldRow);
-            });
-
-            return fields;
+            const fieldsTitle = document.createElement('h6');
+            fieldsTitle.className = 'fields-title';
+            fieldsTitle.textContent = 'Campos personalizados:';
+            fieldsContainer.appendChild(fieldsTitle);
+            
+            const fieldsList = document.createElement('ul');
+            fieldsList.className = 'list-group';
+            
+            // Process each custom field
+            for (const [name, value] of Object.entries(customFields)) {
+                if (importantFields.includes(name)) {
+                    const fieldItem = document.createElement('li');
+                    fieldItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    
+                    const fieldName = document.createElement('strong');
+                    fieldName.textContent = name + ': ';
+                    
+                    const fieldValue = document.createElement('span');
+                    fieldValue.textContent = value;
+                    
+                    fieldItem.appendChild(fieldName);
+                    fieldItem.appendChild(fieldValue);
+                    fieldsList.appendChild(fieldItem);
+                }
+            }
+            
+            // If no important fields were found, don't show anything
+            if (fieldsList.children.length === 0) {
+                console.log('No important fields found');
+                return document.createElement('div');
+            }
+            
+            fieldsContainer.appendChild(fieldsList);
+            return fieldsContainer;
         }
 
         function renderCard(card) {
-            const cardDiv = document.createElement('div');
-            cardDiv.className = 'card bg-white';
+            const cardElement = document.createElement('div');
+            cardElement.className = 'card';
             
+            // Card header with title
+            const cardHeader = document.createElement('div');
+            cardHeader.className = 'card-header';
+            
+            const cardTitle = document.createElement('h5');
+            cardTitle.className = 'card-title mb-0';
+            cardTitle.textContent = card.name;
+            cardHeader.appendChild(cardTitle);
+            
+            cardElement.appendChild(cardHeader);
+            
+            // Card body with content
             const cardBody = document.createElement('div');
             cardBody.className = 'card-body';
             
-            const title = document.createElement('h5');
-            title.className = 'card-title mb-3';
-            title.textContent = card.name;
+            // Create two-column layout container
+            const cardContent = document.createElement('div');
+            cardContent.className = 'card-content';
             
-            cardBody.appendChild(title);
+            // Left column for description and checklist
+            const leftColumn = document.createElement('div');
+            leftColumn.className = 'card-left-column';
             
-            // Render labels
+            // Card description
+            if (card.desc && card.desc.trim() !== '') {
+                const descriptionElement = document.createElement('div');
+                descriptionElement.className = 'card-text mb-3';
+                
+                // Create a container for the description with a max height and scrollable
+                const descContainer = document.createElement('div');
+                descContainer.className = 'description-container';
+                descContainer.style.maxHeight = '250px';
+                descContainer.style.overflowY = 'auto';
+                
+                // Convert markdown to HTML (simple version)
+                let descText = card.desc;
+                // Convert markdown links
+                descText = descText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+                // Convert markdown bold
+                descText = descText.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                // Convert markdown italic
+                descText = descText.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                // Convert newlines to <br>
+                descText = descText.replace(/\n/g, '<br>');
+                
+                descContainer.innerHTML = descText;
+                descriptionElement.appendChild(descContainer);
+                leftColumn.appendChild(descriptionElement);
+            }
+            
+            // Factura datos checklist
+            if (card.checklists && card.checklists.length > 0) {
+                // Find the "Factura datos" checklist
+                const facturaChecklist = card.checklists.find(checklist => 
+                    checklist.name === 'Factura datos');
+                
+                if (facturaChecklist && facturaChecklist.checkItems && facturaChecklist.checkItems.length > 0) {
+                    // Create a structured data object from checklist items
+                    const clientData = {};
+                    const fieldsToExtract = ['Cuenta', 'DNI', 'Dirección', 'Código postal', 'Población', 'Provincia', 'eMail'];
+                    
+                    // Extract the specific fields we're looking for
+                    facturaChecklist.checkItems.forEach(item => {
+                        // Check if the item name contains any of our target fields
+                        for (const field of fieldsToExtract) {
+                            if (item.name.includes(field)) {
+                                // Extract the value (everything after the field name and colon/separator)
+                                const value = item.name.split(/[:\s]+/).slice(1).join(' ').trim();
+                                clientData[field] = {
+                                    value: value,
+                                    state: item.state
+                                };
+                                break;
+                            }
+                        }
+                    });
+                    
+                    // Create client data section
+                    if (Object.keys(clientData).length > 0) {
+                        const clientDataElement = document.createElement('div');
+                        clientDataElement.className = 'client-data-section mt-3';
+                        
+                        const dataTitle = document.createElement('h6');
+                        dataTitle.className = 'section-title mb-3';
+                        dataTitle.textContent = 'Datos del cliente:';
+                        clientDataElement.appendChild(dataTitle);
+                        
+                        // Create a table for better data presentation
+                        const dataTable = document.createElement('table');
+                        dataTable.className = 'table table-sm table-bordered';
+                        
+                        // Table header
+                        const thead = document.createElement('thead');
+                        const headerRow = document.createElement('tr');
+                        
+                        const fieldHeader = document.createElement('th');
+                        fieldHeader.textContent = 'Campo';
+                        headerRow.appendChild(fieldHeader);
+                        
+                        const valueHeader = document.createElement('th');
+                        valueHeader.textContent = 'Valor';
+                        headerRow.appendChild(valueHeader);
+                        
+                        thead.appendChild(headerRow);
+                        dataTable.appendChild(thead);
+                        
+                        // Table body
+                        const tbody = document.createElement('tbody');
+                        
+                        // Add rows for each field in the order specified
+                        fieldsToExtract.forEach(field => {
+                            if (clientData[field]) {
+                                const row = document.createElement('tr');
+                                
+                                const fieldCell = document.createElement('td');
+                                fieldCell.className = 'fw-bold';
+                                fieldCell.textContent = field;
+                                row.appendChild(fieldCell);
+                                
+                                const valueCell = document.createElement('td');
+                                valueCell.textContent = clientData[field].value;
+                                
+                                // Style based on completion state
+                                if (clientData[field].state === 'complete') {
+                                    valueCell.className = 'text-success';
+                                    
+                                    // Add check icon
+                                    const checkIcon = document.createElement('i');
+                                    checkIcon.className = 'bi bi-check-circle-fill me-2';
+                                    valueCell.prepend(checkIcon);
+                                } else {
+                                    valueCell.className = 'text-secondary';
+                                }
+                                
+                                row.appendChild(valueCell);
+                                tbody.appendChild(row);
+                            }
+                        });
+                        
+                        dataTable.appendChild(tbody);
+                        clientDataElement.appendChild(dataTable);
+                        
+                        // Add to the left column
+                        leftColumn.appendChild(clientDataElement);
+                    }
+                    
+                    // Still show the original checklist for reference
+                    const checklistElement = document.createElement('div');
+                    checklistElement.className = 'card-checklist mt-3';
+                    
+                    const checklistTitle = document.createElement('h6');
+                    checklistTitle.className = 'checklist-title';
+                    checklistTitle.textContent = 'Checklist completo:';
+                    checklistElement.appendChild(checklistTitle);
+                    
+                    const checklistItems = document.createElement('ul');
+                    checklistItems.className = 'list-group';
+                    
+                    facturaChecklist.checkItems.forEach(item => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        
+                        // Create checkbox
+                        const checkbox = document.createElement('div');
+                        checkbox.className = 'd-flex align-items-center';
+                        
+                        const checkIcon = document.createElement('i');
+                        if (item.state === 'complete') {
+                            checkIcon.className = 'bi bi-check-square-fill me-2';
+                            checkIcon.style.color = '#28a745';
+                        } else {
+                            checkIcon.className = 'bi bi-square me-2';
+                            checkIcon.style.color = '#6c757d';
+                        }
+                        
+                        checkbox.appendChild(checkIcon);
+                        
+                        // Item name
+                        const itemText = document.createElement('span');
+                        itemText.textContent = item.name;
+                        if (item.state === 'complete') {
+                            itemText.style.textDecoration = 'line-through';
+                            itemText.style.color = '#6c757d';
+                        }
+                        
+                        checkbox.appendChild(itemText);
+                        listItem.appendChild(checkbox);
+                        
+                        checklistItems.appendChild(listItem);
+                    });
+                    
+                    checklistElement.appendChild(checklistItems);
+                    leftColumn.appendChild(checklistElement);
+                }
+            }
+            
+            // Right column for labels, due date, and custom fields
+            const rightColumn = document.createElement('div');
+            rightColumn.className = 'card-right-column';
+            
+            // Card labels
             if (card.labels && card.labels.length > 0) {
                 const labelsDiv = document.createElement('div');
-                labelsDiv.className = 'mb-3';
+                labelsDiv.className = 'card-labels mb-3';
+                
+                const labelsTitle = document.createElement('h6');
+                labelsTitle.className = 'mb-2';
+                labelsTitle.textContent = 'Etiquetas:';
+                labelsDiv.appendChild(labelsTitle);
+                
                 card.labels.forEach(label => {
-                    const badge = document.createElement('span');
-                    badge.className = `badge ${label.toLowerCase()} me-1`;
-                    badge.textContent = label;
-                    labelsDiv.appendChild(badge);
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'label';
+                    labelSpan.style.backgroundColor = label.color || '#6c757d';
+                    labelSpan.style.color = 'white';
+                    labelSpan.textContent = label.name || label.color;
+                    labelsDiv.appendChild(labelSpan);
                 });
-                cardBody.appendChild(labelsDiv);
+                
+                rightColumn.appendChild(labelsDiv);
             }
             
-            // Render description if exists
-            if (card.description) {
-                const desc = document.createElement('p');
-                desc.className = 'card-text mb-3';
-                desc.textContent = card.description;
-                cardBody.appendChild(desc);
+            // Due date
+            if (card.due) {
+                const dueDate = document.createElement('div');
+                dueDate.className = 'card-due-date mb-3';
+                
+                const dueTitle = document.createElement('h6');
+                dueTitle.className = 'mb-2';
+                dueTitle.textContent = 'Fecha de vencimiento:';
+                dueDate.appendChild(dueTitle);
+                
+                const dueDateText = document.createElement('p');
+                dueDateText.className = 'mb-0';
+                
+                const date = new Date(card.due);
+                dueDateText.textContent = date.toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                dueDate.appendChild(dueDateText);
+                rightColumn.appendChild(dueDate);
             }
             
-            // Render Amazing Fields
-            console.log('Card amazing_fields:', card.amazing_fields);  // Debug log
-            if (card.amazing_fields) {
-                cardBody.appendChild(renderAmazingFields(card.amazing_fields));
+            // Amazing Fields
+            if (card.customFields) {
+                const amazingFieldsElement = renderAmazingFields(card.customFields);
+                rightColumn.appendChild(amazingFieldsElement);
             }
             
-            cardDiv.appendChild(cardBody);
-            return cardDiv;
-        }
-
-        function renderList(list) {
-            const listDiv = document.createElement('div');
-            listDiv.className = 'mb-4';
+            // Add columns to content
+            cardContent.appendChild(leftColumn);
+            cardContent.appendChild(rightColumn);
             
-            const title = document.createElement('h3');
-            title.className = 'mb-3';
-            title.textContent = list.name;
+            // Add specific checklists if they exist
+            if (card.checklists && card.checklists.length > 0) {
+                const specificChecklistsElement = renderSpecificChecklists(card.checklists);
+                if (specificChecklistsElement) {
+                    // Create a new row for specific checklists that spans the full width
+                    const specificChecklistsRow = document.createElement('div');
+                    specificChecklistsRow.className = 'row mt-3';
+                    
+                    const specificChecklistsCol = document.createElement('div');
+                    specificChecklistsCol.className = 'col-12';
+                    specificChecklistsCol.appendChild(specificChecklistsElement);
+                    
+                    specificChecklistsRow.appendChild(specificChecklistsCol);
+                    cardContent.appendChild(specificChecklistsRow);
+                }
+            }
             
-            listDiv.appendChild(title);
+            // Add content to card body
+            cardBody.appendChild(cardContent);
             
-            list.cards.forEach(card => {
-                listDiv.appendChild(renderCard(card));
+            // Add card body to card
+            cardElement.appendChild(cardBody);
+            
+            // Add export button for vTiger
+            const cardFooter = document.createElement('div');
+            cardFooter.className = 'card-footer text-end';
+            
+            const exportButton = document.createElement('button');
+            exportButton.className = 'btn btn-primary';
+            exportButton.setAttribute('type', 'button');
+            exportButton.setAttribute('data-bs-toggle', 'modal');
+            exportButton.setAttribute('data-bs-target', '#exportConfirmModal');
+            exportButton.innerHTML = '<i class="bi bi-download me-2"></i>Exportar para vTiger';
+            
+            // Store card data as a data attribute
+            exportButton.addEventListener('click', function() {
+                // Set the current card for export
+                currentCardForExport = card;
+                
+                // Debug: Log the entire card structure
+                console.log('FULL CARD STRUCTURE:', JSON.stringify(card, null, 2));
+                
+                // Update modal content
+                document.getElementById('exportCardName').textContent = card.name;
+                populateExportPreview(card);
             });
             
-            return listDiv;
-        }
-
-        function renderBoard(data) {
-            const container = document.getElementById('board-container');
-            container.innerHTML = '';
+            cardFooter.appendChild(exportButton);
+            cardElement.appendChild(cardFooter);
             
-            data.lists.forEach(list => {
-                container.appendChild(renderList(list));
-            });
+            return cardElement;
         }
 
-        // Cargar los datos del tablero
-        fetch('/board')
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    displayError('Error al cargar los datos del tablero: ' + data.error);
+        // Function to render specific checklists
+        function renderSpecificChecklists(checklists) {
+            if (!checklists || checklists.length === 0) {
+                return null;
+            }
+            
+            const specificChecklistNames = ['Cuenta', 'DNI', 'Dirección', 'Código postal', 'Población', 'Provincia', 'eMail'];
+            const filteredChecklists = checklists.filter(checklist => 
+                specificChecklistNames.includes(checklist.name)
+            );
+            
+            if (filteredChecklists.length === 0) {
+                return null;
+            }
+            
+            const checklistsContainer = document.createElement('div');
+            checklistsContainer.className = 'specific-checklists-container mt-4';
+            
+            const containerTitle = document.createElement('h5');
+            containerTitle.className = 'mb-3';
+            containerTitle.textContent = 'Datos específicos:';
+            checklistsContainer.appendChild(containerTitle);
+            
+            // Create a table for better data presentation
+            const dataTable = document.createElement('table');
+            dataTable.className = 'table table-bordered';
+            
+            // Table body
+            const tbody = document.createElement('tbody');
+            
+            // Process each specific checklist
+            filteredChecklists.forEach((checklist) => {
+                // Create a row for the checklist
+                const checklistRow = document.createElement('tr');
+                checklistRow.className = 'checklist-row';
+                
+                // Checklist name cell
+                const nameCell = document.createElement('td');
+                nameCell.className = 'fw-bold';
+                nameCell.style.width = '30%';
+                nameCell.style.backgroundColor = '#f8f9fa';
+                
+                // Name with completion badge
+                const nameWithBadge = document.createElement('div');
+                nameWithBadge.className = 'd-flex align-items-center';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = checklist.name;
+                
+                // Add completion status indicator
+                const completedItems = checklist.checkItems.filter(item => item.state === 'complete').length;
+                const totalItems = checklist.checkItems.length;
+                
+                const countBadge = document.createElement('span');
+                countBadge.className = 'badge rounded-pill bg-danger ms-2';
+                countBadge.textContent = `${completedItems}/${totalItems}`;
+                countBadge.style.fontSize = '0.75rem';
+                
+                nameWithBadge.appendChild(nameSpan);
+                nameWithBadge.appendChild(countBadge);
+                nameCell.appendChild(nameWithBadge);
+                
+                // Checklist items cell
+                const itemsCell = document.createElement('td');
+                
+                // Create checklist items
+                if (checklist.checkItems && checklist.checkItems.length > 0) {
+                    // Sort items by position
+                    const sortedItems = [...checklist.checkItems].sort((a, b) => a.pos - b.pos);
+                    
+                    sortedItems.forEach((item, index) => {
+                        if (index > 0) {
+                            // Add separator between items
+                            const separator = document.createElement('hr');
+                            separator.className = 'my-2';
+                            separator.style.opacity = '0.2';
+                            itemsCell.appendChild(separator);
+                        }
+                        
+                        const itemRow = document.createElement('div');
+                        itemRow.className = 'd-flex align-items-center mb-2';
+                        
+                        // Status icon
+                        const statusIcon = document.createElement('i');
+                        if (item.state === 'complete') {
+                            statusIcon.className = 'bi bi-check-circle-fill text-success me-2';
+                        } else {
+                            statusIcon.className = 'bi bi-circle text-secondary me-2';
+                        }
+                        
+                        // Item text
+                        const itemText = document.createElement('span');
+                        itemText.textContent = item.name;
+                        if (item.state === 'complete') {
+                            itemText.style.color = '#28a745';
+                        }
+                        
+                        itemRow.appendChild(statusIcon);
+                        itemRow.appendChild(itemText);
+                        itemsCell.appendChild(itemRow);
+                    });
                 } else {
-                    renderBoard(data);
+                    const emptyMessage = document.createElement('p');
+                    emptyMessage.className = 'text-muted mb-0';
+                    emptyMessage.textContent = 'No hay elementos en esta lista.';
+                    itemsCell.appendChild(emptyMessage);
+                }
+                
+                // Add cells to row
+                checklistRow.appendChild(nameCell);
+                checklistRow.appendChild(itemsCell);
+                
+                // Add row to table
+                tbody.appendChild(checklistRow);
+            });
+            
+            dataTable.appendChild(tbody);
+            checklistsContainer.appendChild(dataTable);
+            
+            return checklistsContainer;
+        }
+
+        // Function to generate vTiger import file
+        function generateVTigerFile(card) {
+            console.log('Generating vTiger file for card:', card.name);
+            console.log('Card data being sent:', JSON.stringify(card, null, 2));
+            
+            // Show loading state
+            const loadingToast = showToast('Generando archivo para vTiger...', 'info');
+            
+            // Send card data to server
+            fetch('/generate-vtiger-file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ cardData: card }),
+            })
+            .then(response => {
+                console.log('Server response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`Error generating vTiger file: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('vTiger file generated, server response:', data);
+                
+                // Hide loading toast
+                hideToast(loadingToast);
+                
+                if (data.success) {
+                    // Show success message
+                    showToast('Archivo generado correctamente', 'success');
+                    
+                    // Create a link and trigger download
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = data.download_url;
+                    console.log('Download URL:', data.download_url);
+                    
+                    // Try both methods
+                    try {
+                        // Method 1: Click the link
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                        
+                        // Method 2: Open in new window
+                        window.open(data.download_url, '_blank');
+                    } catch (e) {
+                        console.error('Error triggering download:', e);
+                        showToast('Error al descargar el archivo. Intente descargar directamente: ' + data.download_url, 'error');
+                    }
+                } else {
+                    // Show error message
+                    showToast('Error al generar el archivo: ' + data.error, 'error');
                 }
             })
             .catch(error => {
-                displayError('Error al cargar los datos del tablero: ' + error.message);
+                console.error('Error generating vTiger file:', error);
+                hideToast(loadingToast);
+                showToast('Error al generar el archivo: ' + error.message, 'error');
             });
+        }
+        
+        // Toast functions
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                // Create toast container if it doesn't exist
+                const container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                document.body.appendChild(container);
+            }
+            
+            // Create toast element
+            const toastId = 'toast-' + Date.now();
+            const toastElement = document.createElement('div');
+            toastElement.id = toastId;
+            toastElement.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
+            toastElement.setAttribute('role', 'alert');
+            toastElement.setAttribute('aria-live', 'assertive');
+            toastElement.setAttribute('aria-atomic', 'true');
+            
+            // Toast content
+            toastElement.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            // Add to container
+            document.getElementById('toastContainer').appendChild(toastElement);
+            
+            // Initialize and show toast
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: type !== 'info',
+                delay: 5000
+            });
+            toast.show();
+            
+            return toastId;
+        }
+        
+        function hideToast(toastId) {
+            const toastElement = document.getElementById(toastId);
+            if (toastElement) {
+                const toast = bootstrap.Toast.getInstance(toastElement);
+                if (toast) {
+                    toast.hide();
+                }
+            }
+        }
+
+        // Function to fetch board data
+        function fetchBoardData() {
+            console.log('Fetching board data...')
+            
+            fetch('/board-data')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Board data received:', data);
+                    
+                    // Save cards to localStorage for later use
+                    if (data.cards && data.cards.length > 0) {
+                        console.log('Saving cards to localStorage:', data.cards);
+                        localStorage.setItem('cards', JSON.stringify(data.cards));
+                    }
+                    
+                    const boardContainer = document.getElementById('board-container');
+                    boardContainer.innerHTML = '';
+                    
+                    if (data.cards && data.cards.length > 0) {
+                        const cardsContainer = document.createElement('div');
+                        cardsContainer.className = 'row';
+                        
+                        data.cards.forEach(card => {
+                            const cardElement = renderCard(card);
+                            const colDiv = document.createElement('div');
+                            colDiv.className = 'col-12 mb-4';
+                            colDiv.appendChild(cardElement);
+                            cardsContainer.appendChild(colDiv);
+                        });
+                        
+                        boardContainer.appendChild(cardsContainer);
+                    } else {
+                        boardContainer.innerHTML = '<div class="alert alert-info">No hay tarjetas en la lista "Factura".</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Error al cargar los datos del tablero. Por favor, inténtalo de nuevo más tarde.');
+                });
+        }
+
+        // Cargar los datos del tablero
+        fetchBoardData();
+
+        // Global variable to store the card data for export
+        let currentCardForExport = null;
+
+        // Function to populate the export preview
+        function populateExportPreview(card) {
+            console.log('Populating preview for card:', card.name);
+            
+            // Default values
+            let account = '-';
+            let dni = '-';
+            let address = '-';
+            let postalCode = '-';
+            let city = '-';
+            let province = '-';
+            let email = '-';
+            
+            // Process checklists
+            if (card.checklists && card.checklists.length > 0) {
+                console.log('Card has', card.checklists.length, 'checklists');
+                
+                // Process each checklist based on its name
+                card.checklists.forEach(checklist => {
+                    console.log('Processing checklist:', checklist.name);
+                    
+                    if (checklist.name === 'Cuenta' && checklist.checkItems && checklist.checkItems.length > 0) {
+                        account = checklist.checkItems[0].name.split(':')[1]?.trim() || checklist.checkItems[0].name;
+                        console.log('Found account:', account);
+                    }
+                    else if (checklist.name === 'DNI' && checklist.checkItems && checklist.checkItems.length > 0) {
+                        dni = checklist.checkItems[0].name.split(':')[1]?.trim() || checklist.checkItems[0].name;
+                        console.log('Found DNI:', dni);
+                    }
+                    else if (checklist.name === 'Dirección' && checklist.checkItems && checklist.checkItems.length > 0) {
+                        address = checklist.checkItems[0].name.split(':')[1]?.trim() || checklist.checkItems[0].name;
+                        console.log('Found address:', address);
+                    }
+                    else if (checklist.name === 'Código postal' && checklist.checkItems && checklist.checkItems.length > 0) {
+                        postalCode = checklist.checkItems[0].name.split(':')[1]?.trim() || checklist.checkItems[0].name;
+                        console.log('Found postal code:', postalCode);
+                    }
+                    else if (checklist.name === 'Población' && checklist.checkItems && checklist.checkItems.length > 0) {
+                        city = checklist.checkItems[0].name.split(':')[1]?.trim() || checklist.checkItems[0].name;
+                        console.log('Found city:', city);
+                    }
+                    else if (checklist.name === 'Provincia' && checklist.checkItems && checklist.checkItems.length > 0) {
+                        province = checklist.checkItems[0].name.split(':')[1]?.trim() || checklist.checkItems[0].name;
+                        console.log('Found province:', province);
+                    }
+                    else if (checklist.name === 'eMail' && checklist.checkItems && checklist.checkItems.length > 0) {
+                        email = checklist.checkItems[0].name.split(':')[1]?.trim() || checklist.checkItems[0].name;
+                        console.log('Found email:', email);
+                    }
+                    // Look for a "Factura datos" checklist that might contain all the data
+                    else if (checklist.name.toLowerCase().includes('factura datos') && checklist.checkItems) {
+                        console.log('Found Factura datos checklist with', checklist.checkItems.length, 'items');
+                        
+                        checklist.checkItems.forEach(item => {
+                            const itemName = item.name.toLowerCase();
+                            const itemValue = item.name.includes(':') ? item.name.split(':')[1].trim() : item.name;
+                            
+                            console.log('Processing item:', itemName);
+                            
+                            if (itemName.includes('cuenta')) {
+                                account = itemValue;
+                                console.log('Set account from Factura datos:', account);
+                            } else if (itemName.includes('dni')) {
+                                dni = itemValue;
+                                console.log('Set DNI from Factura datos:', dni);
+                            } else if (itemName.includes('dirección') || itemName.includes('direccion')) {
+                                address = itemValue;
+                                console.log('Set address from Factura datos:', address);
+                            } else if (itemName.includes('código postal') || itemName.includes('codigo postal')) {
+                                postalCode = itemValue;
+                                console.log('Set postal code from Factura datos:', postalCode);
+                            } else if (itemName.includes('población') || itemName.includes('poblacion')) {
+                                city = itemValue;
+                                console.log('Set city from Factura datos:', city);
+                            } else if (itemName.includes('provincia')) {
+                                province = itemValue;
+                                console.log('Set province from Factura datos:', province);
+                            } else if (itemName.includes('email') || itemName.includes('e-mail') || itemName.includes('correo')) {
+                                email = itemValue;
+                                console.log('Set email from Factura datos:', email);
+                            }
+                        });
+                    }
+                });
+            } else {
+                console.log('Card has no checklists');
+            }
+            
+            // Update preview elements
+            document.getElementById('previewAccount').textContent = account;
+            document.getElementById('previewDNI').textContent = dni;
+            document.getElementById('previewAddress').textContent = address;
+            document.getElementById('previewPostalCode').textContent = postalCode;
+            document.getElementById('previewCity').textContent = city;
+            document.getElementById('previewProvince').textContent = province;
+            document.getElementById('previewEmail').textContent = email;
+        }
+
+        // Confirm export button event
+        document.getElementById('confirmExportBtn').addEventListener('click', function() {
+            if (currentCardForExport) {
+                // Hide the modal
+                const modalElement = document.getElementById('exportConfirmModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                modal.hide();
+                
+                // Generate the vTiger file
+                generateVTigerFile(currentCardForExport);
+                
+                // Reset the current card
+                currentCardForExport = null;
+            }
+        });
+
+        // Debug export button event
+        document.getElementById('debugExportBtn').addEventListener('click', function() {
+            // Get the first card from local storage
+            const cards = JSON.parse(localStorage.getItem('cards'));
+            if (cards && cards.length > 0) {
+                const card = cards[0];
+                console.log('Using card:', card.name);
+                
+                // Generate the vTiger file
+                generateVTigerFile(card);
+            } else {
+                console.error('No cards found in local storage');
+            }
+        });
     </script>
+
+    <!-- vTiger Export Confirmation Modal -->
+    <div class="modal fade" id="exportConfirmModal" tabindex="-1" aria-labelledby="exportConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="exportConfirmModalLabel">Confirmar Exportación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que deseas exportar los datos de la tarjeta <strong id="exportCardName"></strong> para vTiger?</p>
+                    <div class="mt-3">
+                        <h6>Datos que se exportarán:</h6>
+                        <div id="exportDataPreview" class="border rounded p-2 mt-2 bg-light">
+                            <div class="row">
+                                <div class="col-4 fw-bold">Cuenta:</div>
+                                <div class="col-8" id="previewAccount">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 fw-bold">DNI:</div>
+                                <div class="col-8" id="previewDNI">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 fw-bold">Dirección:</div>
+                                <div class="col-8" id="previewAddress">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 fw-bold">Código Postal:</div>
+                                <div class="col-8" id="previewPostalCode">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 fw-bold">Población:</div>
+                                <div class="col-8" id="previewCity">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 fw-bold">Provincia:</div>
+                                <div class="col-8" id="previewProvince">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 fw-bold">Email:</div>
+                                <div class="col-8" id="previewEmail">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirmExportBtn">Exportar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
